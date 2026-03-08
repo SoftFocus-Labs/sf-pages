@@ -20,6 +20,8 @@
     iconPickerCallback: null,
     activeProjectId: null,
     canvasBg: '',
+    pageAlignment: 'center',
+    pageTitle: '',
   };
 
   // ===== COMPONENT DEFINITIONS =====
@@ -284,6 +286,8 @@
     if (idx === -1) return;
     projects[idx].components = deepClone(state.components);
     projects[idx].canvasBg = state.canvasBg || '';
+    projects[idx].pageAlignment = state.pageAlignment || 'center';
+    projects[idx].pageTitle = state.pageTitle || '';
     projects[idx].updatedAt = Date.now();
     saveAllProjects(projects);
   }
@@ -313,6 +317,8 @@
     setActiveProjectId(id);
     state.components = deepClone(project.components || []);
     state.canvasBg = project.canvasBg || '';
+    state.pageAlignment = project.pageAlignment || 'center';
+    state.pageTitle = project.pageTitle || '';
     state.selectedId = null;
     state.history = [];
     state.historyIndex = -1;
@@ -381,6 +387,8 @@
       if (project) {
         state.components = deepClone(project.components || []);
         state.canvasBg = project.canvasBg || '';
+        state.pageAlignment = project.pageAlignment || 'center';
+        state.pageTitle = project.pageTitle || '';
       }
     }
 
@@ -2540,7 +2548,10 @@
       fontImport = `@import url('https://fonts.googleapis.com/css2?${families}&display=swap');\n\n`;
     }
     const bodyBgRule = state.canvasBg ? `\n  background-color: ${state.canvasBg};` : '';
-    const reset = `* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\n  -webkit-font-smoothing: antialiased;${bodyBgRule}\n}\n\nimg {\n  max-width: 100%;\n}\n\n`;
+    const alignMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
+    const alignValue = alignMap[state.pageAlignment] || 'center';
+    const alignRule = `\n  display: flex;\n  flex-direction: column;\n  align-items: ${alignValue};`;
+    const reset = `* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\n  -webkit-font-smoothing: antialiased;${bodyBgRule}${alignRule}\n}\n\nbody > * {\n  width: 100%;\n}\n\nimg {\n  max-width: 100%;\n}\n\n`;
     return fontImport + reset + css;
   }
 
@@ -2591,7 +2602,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Landing Page</title>
+    <title>${state.pageTitle || 'My Landing Page'}</title>
     <link href="${fontsUrl}" rel="stylesheet">
     ${hasIcons ? '<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>' : ''}
     <style>
@@ -2711,7 +2722,11 @@ ${generateHTML()}
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'landing-page.html';
+    const projects = loadAllProjects();
+    const project = projects.find(p => p.id === state.activeProjectId);
+    const projectName = (project && project.name) ? project.name : 'landing-page';
+    const safeName = projectName.replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '-').toLowerCase() || 'landing-page';
+    a.download = safeName + '.html';
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -2802,6 +2817,41 @@ ${generateHTML()}
     const okBtn = $('#renameOk');
     const cancelBtn = $('#renameCancel');
     const closeBtn = $('#closeRename');
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    closeBtn.addEventListener('click', handleCancel);
+    input.addEventListener('keydown', handleKey);
+  }
+
+  // ===== PAGE TITLE MODAL =====
+  function showPageTitleModal() {
+    const modal = $('#pageTitleModal');
+    const input = $('#pageTitleInput');
+    input.value = state.pageTitle || '';
+    modal.classList.remove('hidden');
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+
+    const cleanup = () => {
+      modal.classList.add('hidden');
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      closeBtn.removeEventListener('click', handleCancel);
+      input.removeEventListener('keydown', handleKey);
+    };
+
+    const handleOk = () => {
+      state.pageTitle = input.value.trim();
+      scheduleAutoSave();
+      showToast(state.pageTitle ? `Page title set to "${state.pageTitle}"` : 'Page title cleared');
+      cleanup();
+    };
+    const handleCancel = () => cleanup();
+    const handleKey = (e) => { if (e.key === 'Enter') handleOk(); if (e.key === 'Escape') handleCancel(); };
+
+    const okBtn = $('#pageTitleOk');
+    const cancelBtn = $('#pageTitleCancel');
+    const closeBtn = $('#closePageTitle');
 
     okBtn.addEventListener('click', handleOk);
     cancelBtn.addEventListener('click', handleCancel);
@@ -2922,6 +2972,43 @@ ${generateHTML()}
       state.canvasBg = '';
       applyCanvasBg();
       scheduleAutoSave();
+    });
+
+    // Page Settings dropdown
+    const pageSettingsBtn = $('#pageSettingsBtn');
+    const pageSettingsDropdown = $('#pageSettingsDropdown');
+    pageSettingsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      pageSettingsDropdown.classList.toggle('visible');
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#pageSettingsWrapper')) {
+        pageSettingsDropdown.classList.remove('visible');
+      }
+    });
+
+    // Page Alignment buttons
+    const alignBtns = pageSettingsDropdown.querySelectorAll('.page-align-btn');
+    function updateAlignBtns() {
+      alignBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.align === state.pageAlignment);
+      });
+    }
+    updateAlignBtns();
+    alignBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        state.pageAlignment = btn.dataset.align;
+        updateAlignBtns();
+        scheduleAutoSave();
+        showToast('Page alignment set to ' + state.pageAlignment);
+      });
+    });
+
+    // Page Title button
+    $('#pageTitleBtn').addEventListener('click', () => {
+      pageSettingsDropdown.classList.remove('visible');
+      showPageTitleModal();
     });
 
     // Project selector

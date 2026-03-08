@@ -138,7 +138,37 @@
 
       <main class="canvas-area">
         <div class="canvas-toolbar">
-          <div class="breadcrumb" id="breadcrumb"></div>
+          <div class="canvas-toolbar-left">
+            <div class="page-settings-wrapper" id="pageSettingsWrapper">
+              <button class="page-settings-btn" id="pageSettingsBtn" type="button">
+                <i data-lucide="settings"></i>
+                <span>Page Settings</span>
+                <i data-lucide="chevron-down" class="page-settings-chevron"></i>
+              </button>
+              <div class="page-settings-dropdown" id="pageSettingsDropdown">
+                <div class="page-settings-section">
+                  <div class="page-settings-label">Page Alignment</div>
+                  <div class="page-settings-alignment-options">
+                    <button class="page-align-btn" data-align="left" title="Left">
+                      <i data-lucide="align-left"></i>
+                    </button>
+                    <button class="page-align-btn active" data-align="center" title="Center">
+                      <i data-lucide="align-center"></i>
+                    </button>
+                    <button class="page-align-btn" data-align="right" title="Right">
+                      <i data-lucide="align-right"></i>
+                    </button>
+                  </div>
+                </div>
+                <div class="page-settings-divider"></div>
+                <button class="page-settings-item" id="pageTitleBtn">
+                  <i data-lucide="type"></i>
+                  <span>Page Title</span>
+                </button>
+              </div>
+            </div>
+            <div class="breadcrumb" id="breadcrumb"></div>
+          </div>
           <div class="canvas-actions">
             <div class="canvas-bg-picker" title="Canvas background color">
               <i data-lucide="paintbrush-vertical"></i>
@@ -321,6 +351,26 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="codeBetaRisky">I'm feeling risky</button>
         <button class="btn btn-primary" id="codeBetaBack">Take me back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Page Title Modal -->
+  <div class="modal-overlay hidden" id="pageTitleModal">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h3>Page Title</h3>
+        <button class="icon-btn modal-close" id="closePageTitle">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-subtext" style="margin-bottom: 8px;">This sets the &lt;title&gt; tag of your exported page.</p>
+        <input type="text" class="mp-input" id="pageTitleInput" placeholder="My Landing Page" style="width:100%">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="pageTitleCancel">Cancel</button>
+        <button class="btn btn-primary" id="pageTitleOk">Save</button>
       </div>
     </div>
   </div>

@@ -1,4 +1,4 @@
-# Pages by SoftFocus Labs
+# Masterpager
 
 A drag-and-drop landing page builder that runs entirely in the browser. No frameworks, no build tools, no backend — just open `index.html` and start building.
 
