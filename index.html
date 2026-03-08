@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pages by SoftFocus Labs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@400;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@300;400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Raleway:wght@300;400;500;600;700&family=Source+Code+Pro:wght@400;500&family=Oswald:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=PT+Sans:wght@400;700&family=PT+Serif:wght@400;700&family=Nunito:wght@300;400;600;700&family=Nunito+Sans:wght@300;400;600;700&family=Ubuntu:wght@300;400;500;700&family=Rubik:wght@300;400;500;600;700&family=Work+Sans:wght@300;400;500;600;700&family=Fira+Sans:wght@300;400;500;700&family=Barlow:wght@300;400;500;600;700&family=Quicksand:wght@300;400;500;600;700&family=Mulish:wght@300;400;600;700&family=Karla:wght@300;400;500;700&family=Libre+Baskerville:wght@400;700&family=Crimson+Text:wght@400;600;700&family=Josefin+Sans:wght@300;400;600;700&family=Cabin:wght@400;500;600;700&family=Archivo:wght@300;400;500;600;700&family=DM+Sans:wght@300;400;500;700&family=DM+Serif+Display&family=Space+Grotesk:wght@300;400;500;600;700&family=Sora:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Manrope:wght@300;400;500;600;700&family=Bitter:wght@300;400;500;700&family=Cormorant+Garamond:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="app" id="app">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="logo">
+          <img src="logo.svg" alt="SF / Pages" height="20" draggable="false" oncontextmenu="return false;" style="pointer-events: none; user-select: none; -webkit-user-drag: none;">
+        </div>
+        <div class="header-divider"></div>
+        <button class="project-btn" id="projectBtn">
+          <i data-lucide="folder-open" class="project-btn-icon"></i>
+          <span class="project-name" id="projectName">Untitled Project</span>
+          <i data-lucide="chevron-down" class="project-btn-chevron"></i>
+        </button>
+      </div>
+      <div class="header-center">
+        <div class="tab-switcher">
+          <button class="tab-btn active" data-tab="visual">
+            <i data-lucide="layout"></i>
+            <span>Visual Editor</span>
+          </button>
+          <button class="tab-btn" data-tab="code">
+            <i data-lucide="code-2"></i>
+            <span>Code Editor (Beta)</span>
+          </button>
+        </div>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-ghost" id="clearBtn" title="Clear canvas">
+          <i data-lucide="trash-2"></i>
+        </button>
+        <button class="btn btn-secondary" id="previewBtn">
+          <i data-lucide="eye"></i>
+          <span>Preview</span>
+        </button>
+        <button class="btn btn-primary" id="exportBtn">
+          <i data-lucide="download"></i>
+          <span>Export</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="editor-view" id="visualEditor">
+      <aside class="panel components-panel">
+        <div class="panel-header">
+          <i data-lucide="puzzle"></i>
+          <h3>Components</h3>
+        </div>
+        <div class="panel-body">
+          <div class="component-group">
+            <div class="group-label">Layout</div>
+            <div class="component-list">
+              <div class="component-item" draggable="true" data-type="section" data-icon-color="blue">
+                <i data-lucide="square"></i>
+                <span>Section</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="row" data-icon-color="cyan">
+                <i data-lucide="rows-3"></i>
+                <span>Row</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="columns-2" data-icon-color="indigo">
+                <i data-lucide="columns-2"></i>
+                <span>2 Columns</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="columns-3" data-icon-color="indigo">
+                <i data-lucide="columns-3"></i>
+                <span>3 Columns</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="columns-4" data-icon-color="indigo">
+                <i data-lucide="grid-2x2"></i>
+                <span>4 Columns</span>
+              </div>
+            </div>
+          </div>
+          <div class="component-group">
+            <div class="group-label">Content</div>
+            <div class="component-list">
+              <div class="component-item" draggable="true" data-type="heading" data-icon-color="purple">
+                <i data-lucide="heading"></i>
+                <span>Heading</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="text" data-icon-color="green">
+                <i data-lucide="align-left"></i>
+                <span>Text</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="image" data-icon-color="pink">
+                <i data-lucide="image"></i>
+                <span>Image</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="button" data-icon-color="orange">
+                <i data-lucide="mouse-pointer-click"></i>
+                <span>Button</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="icon" data-icon-color="yellow">
+                <i data-lucide="smile"></i>
+                <span>Icon</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="svg" data-icon-color="pink">
+                <i data-lucide="shapes"></i>
+                <span>Vector</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="embed" data-icon-color="teal">
+                <i data-lucide="code"></i>
+                <span>Embed</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="divider" data-icon-color="slate">
+                <i data-lucide="minus"></i>
+                <span>Divider</span>
+              </div>
+              <div class="component-item" draggable="true" data-type="spacer" data-icon-color="slate">
+                <i data-lucide="move-vertical"></i>
+                <span>Spacer</span>
+              </div>
+            </div>
+          </div>
+          <div class="component-group">
+            <div class="group-label">Integrations</div>
+            <div class="component-list">
+              <div class="component-item" draggable="true" data-type="calendly" data-icon-color="blue">
+                <i data-lucide="calendar"></i>
+                <span>Calendly</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <main class="canvas-area">
+        <div class="canvas-toolbar">
+          <div class="breadcrumb" id="breadcrumb"></div>
+          <div class="canvas-actions">
+            <div class="canvas-bg-picker" title="Canvas background color">
+              <i data-lucide="paintbrush-vertical"></i>
+              <input type="color" id="canvasBgInput" value="#f8f9fc">
+              <button class="icon-btn canvas-bg-reset" id="canvasBgReset" title="Reset canvas background">
+                <i data-lucide="x"></i>
+              </button>
+            </div>
+            <button class="icon-btn" id="undoBtn" title="Undo">
+              <i data-lucide="undo-2"></i>
+            </button>
+            <button class="icon-btn" id="redoBtn" title="Redo">
+              <i data-lucide="redo-2"></i>
+            </button>
+          </div>
+        </div>
+        <div class="canvas-scroll">
+          <div class="canvas" id="canvas">
+            <div class="canvas-empty" id="canvasEmpty">
+              <i data-lucide="mouse-pointer-click"></i>
+              <p>Drag components here to start building</p>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="panel styles-panel" id="stylesPanel">
+        <div class="panel-header">
+          <i data-lucide="paintbrush"></i>
+          <h3>Styles</h3>
+        </div>
+        <div class="panel-body" id="stylesPanelBody">
+          <div class="no-selection">
+            <i data-lucide="pointer"></i>
+            <p>Select an element to edit its styles</p>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div class="code-view hidden" id="codeEditor">
+      <div class="code-header">
+        <div class="code-tabs">
+          <button class="code-tab active" data-lang="html">HTML</button>
+          <button class="code-tab" data-lang="css">CSS</button>
+          <button class="code-tab" data-lang="js">JavaScript</button>
+        </div>
+        <div class="code-actions">
+          <button class="btn btn-secondary btn-sm" id="importCodeBtn" title="Parse the code and load it into the visual editor">
+            <i data-lucide="arrow-up-from-line"></i>
+            <span>Import to Visual Editor</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" id="copyCodeBtn">
+            <i data-lucide="copy"></i>
+            <span>Copy</span>
+          </button>
+        </div>
+      </div>
+      <div class="code-body">
+        <div class="code-editor-wrapper">
+          <pre class="code-highlight" id="codeHighlight"><code id="codeHighlightCode"></code></pre>
+          <textarea class="code-textarea" id="codeTextarea" spellcheck="false"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Icon Picker Modal -->
+  <div class="modal-overlay hidden" id="iconPickerModal">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Choose an Icon</h3>
+        <button class="icon-btn modal-close" id="closeIconPicker">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-search">
+        <i data-lucide="search"></i>
+        <input type="text" placeholder="Search icons..." id="iconSearch">
+      </div>
+      <div class="icon-grid" id="iconGrid"></div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay hidden" id="previewModal">
+    <div class="modal modal-preview">
+      <div class="modal-header">
+        <h3>Preview</h3>
+        <div class="preview-device-btns">
+          <button class="icon-btn active" data-width="100%" title="Desktop">
+            <i data-lucide="monitor"></i>
+          </button>
+          <button class="icon-btn" data-width="768px" title="Tablet">
+            <i data-lucide="tablet"></i>
+          </button>
+          <button class="icon-btn" data-width="375px" title="Mobile">
+            <i data-lucide="smartphone"></i>
+          </button>
+        </div>
+        <button class="icon-btn modal-close" id="closePreview">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="preview-frame-container">
+        <iframe id="previewFrame" class="preview-frame"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h3 id="confirmTitle">Confirm</h3>
+        <button class="icon-btn modal-close" id="closeConfirm">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p id="confirmMessage"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="confirmCancel">Cancel</button>
+        <button class="btn btn-danger" id="confirmOk">Confirm</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Projects Modal -->
+  <div class="modal-overlay hidden" id="projectsModal">
+    <div class="modal modal-projects">
+      <div class="modal-header">
+        <h3>Your Projects</h3>
+        <button class="icon-btn modal-close" id="closeProjects">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body projects-body">
+        <button class="btn btn-primary new-project-btn" id="newProjectBtn">
+          <i data-lucide="plus"></i>
+          <span>New Project</span>
+        </button>
+        <div class="project-list" id="projectList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Rename Modal -->
+  <div class="modal-overlay hidden" id="renameModal">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h3>Rename Project</h3>
+        <button class="icon-btn modal-close" id="closeRename">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="mp-input" id="renameInput" placeholder="Project name..." style="width:100%">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="renameCancel">Cancel</button>
+        <button class="btn btn-primary" id="renameOk">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Code Editor Beta Warning Modal -->
+  <div class="modal-overlay hidden" id="codeBetaModal">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h3>Heads Up!</h3>
+        <button class="icon-btn modal-close" id="closeCodeBeta">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p>Please be aware that the code editor feature is still in beta, and may break your page. Use at your own risk.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="codeBetaRisky">I'm feeling risky</button>
+        <button class="btn btn-primary" id="codeBetaBack">Take me back</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Calendly URL Modal -->
+  <div class="modal-overlay hidden" id="calendlyModal">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h3>Calendly URL</h3>
+        <button class="icon-btn modal-close" id="closeCalendly">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="mp-input" id="calendlyUrlInput" placeholder="https://calendly.com/..." style="width:100%">
+        <p class="modal-subtext">You can always change this later in the Styles panel.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="calendlyCancel">Cancel</button>
+        <button class="btn btn-primary" id="calendlyOk">Add</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
