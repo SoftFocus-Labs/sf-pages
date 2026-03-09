@@ -256,6 +256,16 @@ body {
 }
 
 /* ===== PANELS ===== */
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
 .panel {
   width: var(--panel-width);
   background: var(--bg-panel);
@@ -266,9 +276,17 @@ body {
   overflow: hidden;
 }
 
+.panel.session-intro {
+  animation: slide-in-left 500ms cubic-bezier(0.16, 1, 0.3, 1) 100ms both;
+}
+
 .styles-panel {
   border-right: none;
   border-left: 1px solid var(--border-color);
+}
+
+.styles-panel.session-intro {
+  animation-name: slide-in-right;
 }
 
 .panel-header {
@@ -651,8 +669,8 @@ body {
   overflow: auto;
   padding: 32px;
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: center;
 }
 
 .canvas-scroll::-webkit-scrollbar {
@@ -669,6 +687,54 @@ body {
   border-radius: 10px;
 }
 
+.canvas-drop-pad {
+  width: 100%;
+  max-width: 960px;
+  min-height: 0;
+  padding: 0;
+  border: 2px dashed transparent;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: min-height 200ms ease, padding 200ms ease, border-color 200ms ease, background 200ms ease;
+  overflow: hidden;
+}
+
+.canvas-drop-pad span {
+  font-size: 13px;
+  font-weight: 500;
+  color: transparent;
+  transition: color 200ms ease;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.canvas-drop-pad.drag-active {
+  min-height: 48px;
+  padding: 8px;
+  border-color: var(--accent);
+  background: rgba(99, 102, 241, 0.06);
+}
+
+.canvas-drop-pad.drag-active span {
+  color: var(--accent);
+}
+
+.canvas-drop-pad.drag-hover {
+  background: rgba(99, 102, 241, 0.14);
+  border-color: var(--accent);
+  box-shadow: 0 0 16px rgba(99, 102, 241, 0.2);
+}
+
+.canvas-drop-pad-top {
+  margin-bottom: 8px;
+}
+
+.canvas-drop-pad-bottom {
+  margin-top: 8px;
+}
+
 .canvas {
   width: 100%;
   max-width: 960px;
@@ -681,7 +747,7 @@ body {
   outline: 2px solid transparent;
   outline-offset: 0;
   height: fit-content;
-  margin-bottom: 32px;
+  flex-shrink: 0;
 }
 
 .canvas.drag-over {
@@ -1065,6 +1131,8 @@ body {
 .canvas .comp-divider hr {
   border: none;
   border-top: 2px solid #e0e0f0;
+  margin: 0;
+  width: 100%;
 }
 
 .canvas .comp-spacer {
@@ -1832,7 +1900,7 @@ textarea.mp-input {
   padding: 16px;
   display: flex;
   justify-content: center;
-  background: #1a1a2e;
+  background: #161616;
   overflow: hidden;
 }
 
