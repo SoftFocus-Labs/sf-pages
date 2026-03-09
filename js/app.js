@@ -779,7 +779,14 @@
         btn.style.borderRadius = comp.styles.buttonRadius || '6px';
         btn.style.fontSize = comp.styles.fontSize || '15px';
         btn.style.fontWeight = comp.styles.fontWeight || '600';
-        btn.style.display = 'inline-block';
+        if (comp.styles.buttonSizing === 'fill') {
+          btn.style.display = 'block';
+          btn.style.width = '100%';
+          btn.style.textAlign = 'center';
+          btn.style.boxSizing = 'border-box';
+        } else {
+          btn.style.display = 'inline-block';
+        }
         btn.style.textDecoration = 'none';
         btn.style.fontFamily = comp.styles.fontFamily || 'inherit';
         inner.appendChild(btn);
@@ -789,6 +796,8 @@
       case 'icon': {
         const iconName = comp.props.iconName || 'star';
         inner.innerHTML = `<i data-lucide="${iconName}"></i>`;
+        const alignMap = { left: 'flex-start', center: 'center', right: 'flex-end' };
+        inner.style.justifyContent = alignMap[comp.styles.textAlign] || 'center';
         const svgParent = inner;
         setTimeout(() => {
           lucide.createIcons({ nodes: [svgParent] });
@@ -811,7 +820,10 @@
             if (comp.styles.height) svgEl.style.height = comp.styles.height;
             svgEl.style.maxWidth = '100%';
             svgEl.style.display = 'block';
-            if (comp.styles.textAlign === 'center') svgEl.style.margin = '0 auto';
+            const align = comp.styles.textAlign || 'center';
+            if (align === 'center') svgEl.style.margin = '0 auto';
+            else if (align === 'right') svgEl.style.margin = '0 0 0 auto';
+            else svgEl.style.margin = '0';
           }
         } else {
           inner.innerHTML = `<div class="svg-placeholder"><i data-lucide="shapes"></i><span>Upload or paste SVG in styles panel</span></div>`;
@@ -875,7 +887,7 @@
 
   function applyStylesToElement(el, comp) {
     const s = comp.styles;
-    const skip = ['buttonBg', 'buttonColor', 'buttonPadding', 'buttonRadius', 'iconSize', 'borderColor', 'borderWidth'];
+    const skip = ['buttonBg', 'buttonColor', 'buttonPadding', 'buttonRadius', 'buttonSizing', 'iconSize', 'borderColor', 'borderWidth'];
     const cssMap = {
       padding: 'padding', paddingTop: 'paddingTop', paddingRight: 'paddingRight', paddingBottom: 'paddingBottom', paddingLeft: 'paddingLeft', margin: 'margin', backgroundColor: 'backgroundColor',
       color: 'color', fontSize: 'fontSize', fontWeight: 'fontWeight',
@@ -966,18 +978,31 @@
   const canvasDropTop = $('#canvasDropTop');
   const canvasDropBottom = $('#canvasDropBottom');
 
-  function showDropPads() {
-    canvasDropTop.classList.add('drag-active');
-    canvasDropBottom.classList.add('drag-active');
-    setTimeout(() => {
-      const scrollContainer = canvasEl.closest('.canvas-scroll');
-      scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
-    }, 210);
+  let isDragging = false;
+  let bottomPadScrolled = false;
+
+  function updateDropPads(clientY) {
+    const scrollContainer = canvasEl.closest('.canvas-scroll');
+    const rect = scrollContainer.getBoundingClientRect();
+    const nearTop = clientY - rect.top < 32;
+    const nearBottom = rect.bottom - clientY < 32;
+
+    // Don't hide a pad if the user is actively hovering over it
+    const hoveringTop = canvasDropTop.classList.contains('drag-hover');
+    const hoveringBottom = canvasDropBottom.classList.contains('drag-hover');
+
+    canvasDropTop.classList.toggle('drag-active', nearTop || hoveringTop);
+    if (!nearTop && !hoveringTop) canvasDropTop.classList.remove('drag-hover');
+
+    canvasDropBottom.classList.toggle('drag-active', nearBottom || hoveringBottom);
+    if (!nearBottom && !hoveringBottom) canvasDropBottom.classList.remove('drag-hover');
   }
 
   function hideDropPads() {
     canvasDropTop.classList.remove('drag-active', 'drag-hover');
     canvasDropBottom.classList.remove('drag-active', 'drag-hover');
+    isDragging = false;
+    bottomPadScrolled = false;
   }
 
   function initPanelDrag() {
@@ -993,7 +1018,7 @@
         document.body.appendChild(ghost);
         e.dataTransfer.setDragImage(ghost, 0, 0);
         setTimeout(() => ghost.remove(), 0);
-        showDropPads();
+        isDragging = true;
       });
       item.addEventListener('dragend', () => {
         item.classList.remove('dragging');
@@ -1054,6 +1079,11 @@
       renderStylesPanel();
     });
 
+    // Show drop pads based on proximity to top/bottom edges
+    canvasEl.closest('.canvas-scroll').addEventListener('dragover', (e) => {
+      if (isDragging) updateDropPads(e.clientY);
+    });
+
     // Drop pads above/below canvas
     function setupDropPad(pad, insertIndex) {
       pad.addEventListener('dragover', (e) => {
@@ -1099,6 +1129,17 @@
 
     setupDropPad(canvasDropTop, 0);
     setupDropPad(canvasDropBottom, () => state.components.length);
+
+    // Scroll to bottom when dragging into the bottom drop pad
+    canvasDropBottom.addEventListener('dragover', () => {
+      if (!bottomPadScrolled) {
+        bottomPadScrolled = true;
+        const scrollContainer = canvasEl.closest('.canvas-scroll');
+        setTimeout(() => {
+          scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+        }, 210);
+      }
+    });
 
     // Deselect when clicking dead space around or on the canvas (not on a component)
     canvasEl.closest('.canvas-scroll').addEventListener('click', (e) => {
@@ -1232,6 +1273,11 @@
         body.appendChild(makeRow('Text Color', () => makeColorInput(comp.styles.buttonColor || '#ffffff', (v) => { comp.styles.buttonColor = v; pushHistory(); renderCanvas(); })));
         body.appendChild(makeRow('Padding', () => makeInput(comp.styles.buttonPadding || '12px 28px', (v) => { comp.styles.buttonPadding = v; pushHistory(); renderCanvas(); })));
         body.appendChild(makeRow('Radius', () => makeInput(comp.styles.buttonRadius || '6px', (v) => { comp.styles.buttonRadius = v; pushHistory(); renderCanvas(); })));
+        body.appendChild(makeRow('Sizing', () => createCustomSelect(
+          [{ label: 'Hug Contents', value: 'hug' }, { label: 'Fill Container', value: 'fill' }],
+          comp.styles.buttonSizing || 'hug',
+          (v) => { comp.styles.buttonSizing = v; pushHistory(); renderCanvas(); }
+        )));
       }));
     }
 
@@ -1266,6 +1312,7 @@
         }));
         body.appendChild(makeRow('Size', () => makeInput(comp.styles.iconSize || '40px', (v) => { comp.styles.iconSize = v; pushHistory(); renderCanvas(); })));
         body.appendChild(makeRow('Color', () => makeColorInput(comp.styles.color || '#027ac4', (v) => { comp.styles.color = v; pushHistory(); renderCanvas(); })));
+        body.appendChild(makeRow('Align', () => makeAlignGroup(comp.styles.textAlign || 'center', (v) => { comp.styles.textAlign = v; pushHistory(); renderCanvas(); }, { includeJustify: false })));
       }));
     }
 
@@ -1306,6 +1353,7 @@
         }));
         body.appendChild(makeRow('Width', () => makeInput(comp.styles.width || '', (v) => { comp.styles.width = v; pushHistory(); renderCanvas(); }, 'auto')));
         body.appendChild(makeRow('Height', () => makeInput(comp.styles.height || '', (v) => { comp.styles.height = v; pushHistory(); renderCanvas(); }, 'auto')));
+        body.appendChild(makeRow('Align', () => makeAlignGroup(comp.styles.textAlign || 'center', (v) => { comp.styles.textAlign = v; pushHistory(); renderCanvas(); }, { includeJustify: false })));
       }));
     }
 
@@ -1589,10 +1637,12 @@
     return wrapper;
   }
 
-  function makeAlignGroup(current, onChange) {
+  function makeAlignGroup(current, onChange, { includeJustify = true } = {}) {
     const group = document.createElement('div');
     group.className = 'btn-group';
-    [{ val: 'left', icon: 'align-left' }, { val: 'center', icon: 'align-center' }, { val: 'right', icon: 'align-right' }, { val: 'justify', icon: 'align-justify' }].forEach(a => {
+    const options = [{ val: 'left', icon: 'align-left' }, { val: 'center', icon: 'align-center' }, { val: 'right', icon: 'align-right' }];
+    if (includeJustify) options.push({ val: 'justify', icon: 'align-justify' });
+    options.forEach(a => {
       const btn = document.createElement('button');
       btn.type = 'button';
       btn.title = a.val.charAt(0).toUpperCase() + a.val.slice(1);
@@ -2614,12 +2664,14 @@
         css += `}\n\n`;
       }
       if (comp.type === 'button') {
-        css += `${cls} .pb-btn {\n  display: inline-block;\n  padding: ${s.buttonPadding || '12px 28px'};\n  background: ${s.buttonBg || '#027ac4'};\n  color: ${s.buttonColor || '#ffffff'};\n  text-decoration: none;\n  border-radius: ${s.buttonRadius || '6px'};\n  font-weight: ${s.fontWeight || '600'};\n  font-size: ${s.fontSize || '15px'};\n`;
+        const btnDisplay = s.buttonSizing === 'fill' ? 'block' : 'inline-block';
+        const btnExtra = s.buttonSizing === 'fill' ? '  width: 100%;\n  text-align: center;\n  box-sizing: border-box;\n' : '';
+        css += `${cls} .pb-btn {\n  display: ${btnDisplay};\n${btnExtra}  padding: ${s.buttonPadding || '12px 28px'};\n  background: ${s.buttonBg || '#027ac4'};\n  color: ${s.buttonColor || '#ffffff'};\n  text-decoration: none;\n  border-radius: ${s.buttonRadius || '6px'};\n  font-weight: ${s.fontWeight || '600'};\n  font-size: ${s.fontSize || '15px'};\n`;
         if (s.fontFamily) css += `  font-family: ${s.fontFamily};\n`;
         css += `  transition: opacity 200ms ease;\n}\n\n${cls} .pb-btn:hover {\n  opacity: 0.85;\n}\n\n`;
       }
       if (comp.type === 'icon') css += `${cls} svg {\n  width: ${s.iconSize || '40px'};\n  height: ${s.iconSize || '40px'};\n  color: ${s.color || '#027ac4'};\n}\n\n`;
-      if (comp.type === 'svg') { let svgRules = '  max-width: 100%;\n  display: block;\n'; if (s.width) svgRules += `  width: ${s.width};\n`; if (s.height) svgRules += `  height: ${s.height};\n`; if (s.textAlign === 'center') svgRules += '  margin: 0 auto;\n'; css += `${cls} svg {\n${svgRules}}\n\n`; }
+      if (comp.type === 'svg') { let svgRules = '  max-width: 100%;\n  display: block;\n'; if (s.width) svgRules += `  width: ${s.width};\n`; if (s.height) svgRules += `  height: ${s.height};\n`; const svgAlign = s.textAlign || 'center'; if (svgAlign === 'center') svgRules += '  margin: 0 auto;\n'; else if (svgAlign === 'right') svgRules += '  margin: 0 0 0 auto;\n'; css += `${cls} svg {\n${svgRules}}\n\n`; }
       if (comp.type === 'calendly') css += `${cls} iframe {\n  width: 100%;\n  height: ${s.height || '660px'};\n  border: none;\n  border-radius: 8px;\n}\n\n`;
       if (comp.type === 'image') {
         let imgRules = '';
@@ -2642,7 +2694,39 @@
     const alignValue = alignMap[state.pageAlignment] || 'center';
     const alignRule = `\n  display: flex;\n  flex-direction: column;\n  align-items: ${alignValue};`;
     const reset = `* {\n  margin: 0;\n  padding: 0;\n  box-sizing: border-box;\n}\n\nbody {\n  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;\n  -webkit-font-smoothing: antialiased;${bodyBgRule}${alignRule}\n}\n\nbody > * {\n  width: 100%;\n}\n\nimg {\n  max-width: 100%;\n}\n\n`;
-    return fontImport + reset + css;
+    // Collect IDs for responsive overrides that need to beat ID specificity
+    const colGroupIds = [];
+    const columnIds = [];
+    const rowIds = [];
+    const textComps = []; // { id, fontSize } for headings and text
+    function collectResponsive(comp) {
+      if (/^columns-\d$/.test(comp.type)) colGroupIds.push(`#${comp.id}`);
+      if (comp.type === 'column') columnIds.push(`#${comp.id}`);
+      if (comp.type === 'row') rowIds.push(`#${comp.id}`);
+      if (comp.type === 'heading' || comp.type === 'text') {
+        const defaultSize = comp.type === 'heading' ? '28px' : '16px';
+        textComps.push({ id: comp.id, fontSize: comp.styles.fontSize || defaultSize });
+      }
+      if (comp.children) comp.children.forEach(collectResponsive);
+    }
+    state.components.forEach(collectResponsive);
+
+    let responsive = '/* Responsive - Mobile */\n@media (max-width: 480px) {\n';
+    if (colGroupIds.length) responsive += `  ${colGroupIds.join(',\n  ')} {\n    flex-direction: column;\n    gap: 16px;\n  }\n\n`;
+    if (columnIds.length) responsive += `  ${columnIds.join(',\n  ')} {\n    width: 100%;\n  }\n\n`;
+    if (rowIds.length) responsive += `  ${rowIds.join(',\n  ')} {\n    flex-wrap: wrap;\n  }\n\n`;
+    // Scale each text component's font size down by 33%
+    textComps.forEach(({ id, fontSize }) => {
+      const parsed = parseFloat(fontSize);
+      if (!isNaN(parsed)) {
+        const unit = fontSize.replace(/[\d.]+/, '') || 'px';
+        const scaled = Math.round(parsed * 0.75 * 100) / 100;
+        responsive += `  #${id} {\n    font-size: ${scaled}${unit};\n  }\n\n`;
+      }
+    });
+    responsive += '}\n';
+
+    return fontImport + reset + css + responsive;
   }
 
   function buildCssRules(styles, props) {
@@ -3050,7 +3134,7 @@ ${generateHTML()}
     // Clear
     $('#clearBtn').addEventListener('click', () => {
       if (state.components.length === 0) return;
-      showConfirmModal('Clear Canvas', 'Are you sure you want to remove all components from the canvas? This action can be undone with Ctrl+Z.', () => {
+      showConfirmModal('Clear Canvas', 'Are you sure you want to remove all components from the canvas? This action cannot be undone.', () => {
         pushHistory();
         state.components = [];
         state.selectedId = null;
