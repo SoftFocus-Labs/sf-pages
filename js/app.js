@@ -846,6 +846,8 @@
         hr.style.borderWidth = comp.styles.borderWidth || '2px';
         hr.style.borderStyle = 'solid';
         hr.style.borderBottom = 'none';
+        if (comp.styles.maxWidth) hr.style.maxWidth = comp.styles.maxWidth;
+        if (comp.styles.width) hr.style.width = comp.styles.width;
         inner.appendChild(hr);
         break;
       }
@@ -961,6 +963,23 @@
   let dragComponentType = null;
   let dragComponentId = null;
 
+  const canvasDropTop = $('#canvasDropTop');
+  const canvasDropBottom = $('#canvasDropBottom');
+
+  function showDropPads() {
+    canvasDropTop.classList.add('drag-active');
+    canvasDropBottom.classList.add('drag-active');
+    setTimeout(() => {
+      const scrollContainer = canvasEl.closest('.canvas-scroll');
+      scrollContainer.scrollTo({ top: scrollContainer.scrollHeight, behavior: 'smooth' });
+    }, 210);
+  }
+
+  function hideDropPads() {
+    canvasDropTop.classList.remove('drag-active', 'drag-hover');
+    canvasDropBottom.classList.remove('drag-active', 'drag-hover');
+  }
+
   function initPanelDrag() {
     $$('.component-item').forEach(item => {
       item.addEventListener('dragstart', (e) => {
@@ -974,6 +993,7 @@
         document.body.appendChild(ghost);
         e.dataTransfer.setDragImage(ghost, 0, 0);
         setTimeout(() => ghost.remove(), 0);
+        showDropPads();
       });
       item.addEventListener('dragend', () => {
         item.classList.remove('dragging');
@@ -981,6 +1001,7 @@
         dragComponentType = null;
         clearDropIndicators();
         canvasEl.classList.remove('drag-over');
+        hideDropPads();
       });
     });
   }
@@ -1032,6 +1053,52 @@
       renderCanvas();
       renderStylesPanel();
     });
+
+    // Drop pads above/below canvas
+    function setupDropPad(pad, insertIndex) {
+      pad.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = dragType === 'new' ? 'copy' : 'move';
+        pad.classList.add('drag-hover');
+      });
+      pad.addEventListener('dragleave', (e) => {
+        if (!pad.contains(e.relatedTarget)) pad.classList.remove('drag-hover');
+      });
+      pad.addEventListener('drop', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        pad.classList.remove('drag-hover');
+        const idx = typeof insertIndex === 'function' ? insertIndex() : insertIndex;
+
+        if (dragType === 'new' && dragComponentType) {
+          if (dragComponentType === 'calendly') {
+            const capturedType = dragComponentType;
+            showCalendlyModal((url) => {
+              pushHistory();
+              const comp = createComponent(capturedType);
+              if (comp) { comp.props.calendlyUrl = url; state.components.splice(idx, 0, comp); state.selectedId = comp.id; }
+              renderCanvas();
+              renderStylesPanel();
+            });
+            return;
+          }
+          pushHistory();
+          const comp = createComponent(dragComponentType);
+          if (comp) { state.components.splice(idx, 0, comp); state.selectedId = comp.id; }
+        } else if (dragType === 'move' && dragComponentId) {
+          pushHistory();
+          const comp = removeComponent(dragComponentId, state.components);
+          if (comp) state.components.splice(idx, 0, comp);
+        }
+
+        renderCanvas();
+        renderStylesPanel();
+      });
+    }
+
+    setupDropPad(canvasDropTop, 0);
+    setupDropPad(canvasDropBottom, () => state.components.length);
 
     // Deselect when clicking dead space around or on the canvas (not on a component)
     canvasEl.closest('.canvas-scroll').addEventListener('click', (e) => {
@@ -2098,6 +2165,23 @@
       };
     }
 
+    // Div wrapping an HR = divider
+    if (tag === 'div' && el.children.length === 1 && el.children[0].tagName === 'HR') {
+      const hrStyles = getElementStyles(el.children[0], cssRules);
+      return {
+        id: uid(), type: 'divider', props: {},
+        styles: {
+          padding: elStyles.padding || '8px 16px',
+          margin: elStyles.margin || '',
+          maxWidth: hrStyles.maxWidth || elStyles.maxWidth || '',
+          width: hrStyles.width || elStyles.width || '',
+          borderColor: hrStyles.borderColor || hrStyles.borderTopColor || '#e0e0f0',
+          borderWidth: hrStyles.borderWidth || hrStyles.borderTopWidth || '2px',
+        },
+        content: '', children: null,
+      };
+    }
+
     // Divs — detect if it's a flex row (columns), grid, or a generic container
     if (tag === 'div' || tag === 'li' || tag === 'ul') {
       const childElements = Array.from(el.children).filter(c => c.nodeType === 1 && !['script', 'style'].includes(c.tagName.toLowerCase()));
@@ -2479,7 +2563,7 @@
         case 'svg': return `${pad}<div class="${cls}" id="${id}">\n${pad}${indent}${comp.props.svgCode || '<!-- SVG here -->'}\n${pad}</div>`;
         case 'embed': return `${pad}<div class="${cls}" id="${id}">\n${pad}${indent}${comp.props.embedCode || '<!-- Embed code here -->'}\n${pad}</div>`;
         case 'calendly': return `${pad}<div class="${cls}" id="${id}">\n${pad}${indent}<iframe src="${escHtml(comp.props.calendlyUrl || '')}" style="width:100%;height:${comp.styles.height || '660px'};border:none;border-radius:8px;"></iframe>\n${pad}</div>`;
-        case 'divider': return `${pad}<hr class="${cls}" id="${id}">`;
+        case 'divider': return `${pad}<div class="${cls}" id="${id}">\n${pad}${indent}<hr>\n${pad}</div>`;
         case 'spacer': return `${pad}<div class="${cls}" id="${id}"></div>`;
         default: return '';
       }
@@ -2509,7 +2593,7 @@
         case 'icon': rules += buildCssRules(s, ['padding', 'textAlign']); break;
         case 'svg': rules += buildCssRules(s, ['padding', 'textAlign']); break;
         case 'calendly': rules += buildCssRules(s, ['padding']); break;
-        case 'divider': if (s.borderColor || s.borderWidth) { rules += `  border: none;\n  border-top: ${s.borderWidth || '2px'} solid ${s.borderColor || '#e0e0f0'};\n`; } rules += buildCssRules(s, ['padding', 'margin']); break;
+        case 'divider': rules += buildCssRules(s, ['padding', 'margin']); break;
         case 'spacer': rules += buildCssRules(s, ['height']); break;
       }
       if (s.borderRadius) rules += `  border-radius: ${s.borderRadius};\n`;
@@ -2523,6 +2607,12 @@
       if (s.overflow) rules += `  overflow: ${s.overflow};\n`;
       if (s.backdropFilter) rules += `  backdrop-filter: ${s.backdropFilter};\n  -webkit-backdrop-filter: ${s.backdropFilter};\n`;
       if (rules) css += `${cls} {\n${rules}}\n\n`;
+      if (comp.type === 'divider') {
+        css += `${cls} hr {\n  border: none;\n  border-top: ${s.borderWidth || '2px'} solid ${s.borderColor || '#e0e0f0'};\n  margin: 0;\n  width: 100%;\n`;
+        if (s.maxWidth) css += `  max-width: ${s.maxWidth};\n`;
+        if (s.width) css += `  width: ${s.width};\n`;
+        css += `}\n\n`;
+      }
       if (comp.type === 'button') {
         css += `${cls} .pb-btn {\n  display: inline-block;\n  padding: ${s.buttonPadding || '12px 28px'};\n  background: ${s.buttonBg || '#027ac4'};\n  color: ${s.buttonColor || '#ffffff'};\n  text-decoration: none;\n  border-radius: ${s.buttonRadius || '6px'};\n  font-weight: ${s.fontWeight || '600'};\n  font-size: ${s.fontSize || '15px'};\n`;
         if (s.fontFamily) css += `  font-family: ${s.fontFamily};\n`;
@@ -2860,7 +2950,18 @@ ${generateHTML()}
   }
 
   // ===== INITIALIZATION =====
+  let sessionIntroPlayed = false;
+
   function init() {
+    // Play panel slide-in animation once per session
+    if (!sessionIntroPlayed) {
+      sessionIntroPlayed = true;
+      $$('.panel').forEach(p => {
+        p.classList.add('session-intro');
+        p.addEventListener('animationend', () => p.classList.remove('session-intro'), { once: true });
+      });
+    }
+
     // Initialize project system first
     initProjectSystem();
 
