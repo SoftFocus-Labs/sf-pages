@@ -44,10 +44,29 @@
           <i data-lucide="eye"></i>
           <span>Preview</span>
         </button>
-        <button class="btn btn-primary" id="exportBtn">
-          <i data-lucide="download"></i>
-          <span>Export</span>
-        </button>
+        <div class="export-wrapper" id="exportWrapper">
+          <button class="btn btn-primary" id="exportBtn">
+            <i data-lucide="download"></i>
+            <span>Export</span>
+            <i data-lucide="chevron-down" class="export-chevron"></i>
+          </button>
+          <div class="export-dropdown" id="exportDropdown">
+            <button class="export-dropdown-item" id="exportSingleBtn">
+              <i data-lucide="file"></i>
+              <div class="export-dropdown-text">
+                <span class="export-dropdown-label">Single HTML File</span>
+                <span class="export-dropdown-desc">Everything in one .html file</span>
+              </div>
+            </button>
+            <button class="export-dropdown-item" id="exportZipBtn">
+              <i data-lucide="folder-archive"></i>
+              <div class="export-dropdown-text">
+                <span class="export-dropdown-label">Multi-File (ZIP)</span>
+                <span class="export-dropdown-desc">Separate index.html, styles.css, script.js</span>
+              </div>
+            </button>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -131,12 +150,23 @@
                 <i data-lucide="calendar"></i>
                 <span>Calendly</span>
               </div>
+              <div class="component-item" draggable="true" data-type="google-analytics" data-icon-color="orange">
+                <i data-lucide="bar-chart-3"></i>
+                <span>Google Analytics</span>
+              </div>
             </div>
           </div>
         </div>
       </aside>
 
       <main class="canvas-area">
+        <!-- Google Analytics drop overlay (scoped to canvas area) -->
+        <div class="ga-drop-overlay hidden" id="gaDropOverlay">
+          <div class="ga-drop-overlay-content">
+            <i data-lucide="bar-chart-3"></i>
+            <span>Add Google Analytics integration</span>
+          </div>
+        </div>
         <div class="canvas-toolbar">
           <div class="canvas-toolbar-left">
             <div class="page-settings-wrapper" id="pageSettingsWrapper">
@@ -165,6 +195,10 @@
                   <i data-lucide="type"></i>
                   <span>Page Title</span>
                 </button>
+                <button class="page-settings-item" id="faviconBtn">
+                  <i data-lucide="image"></i>
+                  <span>Favicon</span>
+                </button>
               </div>
             </div>
             <div class="breadcrumb" id="breadcrumb"></div>
@@ -186,6 +220,21 @@
           </div>
         </div>
         <div class="canvas-scroll">
+          <!-- Google Analytics persistent tag -->
+          <div class="ga-tag hidden" id="gaTag">
+            <div class="ga-tag-btn" id="gaTagBtn">
+              <i data-lucide="bar-chart-3"></i>
+              <span>Google Analytics</span>
+              <i data-lucide="chevron-down" class="ga-tag-chevron"></i>
+            </div>
+            <div class="ga-tag-dropdown hidden" id="gaTagDropdown">
+              <div class="ga-tag-id" id="gaTagId"></div>
+              <div class="ga-tag-actions">
+                <button class="btn btn-secondary btn-sm" id="gaEditBtn">Edit</button>
+                <button class="btn btn-danger btn-sm" id="gaRemoveBtn">Remove</button>
+              </div>
+            </div>
+          </div>
           <div class="canvas-drop-pad canvas-drop-pad-top" id="canvasDropTop">
             <span>Drop here to add to top</span>
           </div>
@@ -308,7 +357,7 @@
   <div class="modal-overlay hidden" id="projectsModal">
     <div class="modal modal-projects">
       <div class="modal-header">
-        <h3>Your Projects</h3>
+        <h3>Manage Projects</h3>
         <button class="icon-btn modal-close" id="closeProjects">
           <i data-lucide="x"></i>
         </button>
@@ -377,6 +426,62 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="pageTitleCancel">Cancel</button>
         <button class="btn btn-primary" id="pageTitleOk">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Favicon Upload Modal -->
+  <div class="modal-overlay hidden" id="faviconModal">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h3>Favicon</h3>
+        <button class="icon-btn modal-close" id="closeFavicon">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="favicon-preview-row hidden" id="faviconPreviewRow">
+          <img id="faviconPreviewImg" class="favicon-preview-img" alt="Favicon preview">
+          <button class="btn btn-danger btn-sm" id="faviconRemoveBtn">Remove</button>
+        </div>
+        <div class="favicon-dropzone" id="faviconDropzone">
+          <i data-lucide="upload"></i>
+          <span>Drag & drop an image here</span>
+          <span class="favicon-dropzone-sub">or</span>
+          <button class="btn btn-secondary btn-sm" id="faviconFileBtn">Choose from computer</button>
+          <input type="file" id="faviconFileInput" accept="image/png,image/x-icon,image/svg+xml,image/gif,image/jpeg,image/webp" style="display:none">
+        </div>
+        <div class="favicon-divider-row">
+          <div class="favicon-divider-line"></div>
+          <span class="favicon-divider-text">or paste a URL</span>
+          <div class="favicon-divider-line"></div>
+        </div>
+        <input type="text" class="mp-input" id="faviconUrlInput" placeholder="https://example.com/favicon.png" style="width:100%">
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="faviconCancel">Cancel</button>
+        <button class="btn btn-primary" id="faviconOk">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Google Analytics Modal -->
+  <div class="modal-overlay hidden" id="gaModal">
+    <div class="modal modal-confirm">
+      <div class="modal-header">
+        <h3>Google Analytics</h3>
+        <button class="icon-btn modal-close" id="closeGa">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+      <div class="modal-body">
+        <input type="text" class="mp-input" id="gaIdInput" placeholder="G-XXXXXXXXXX" style="width:100%">
+        <p class="ga-modal-error hidden" id="gaError">Please enter a tracking ID.</p>
+        <p class="modal-subtext">Enter your Google Analytics Measurement ID (e.g. G-XXXXXXXXXX).</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="gaCancel">Cancel</button>
+        <button class="btn btn-primary" id="gaOk">Add</button>
       </div>
     </div>
   </div>

@@ -1,5 +1,5 @@
 // ============================================================
-// Masterpager — Drag & Drop Landing Page Builder
+// Pages by SoftFocus Labs
 // ============================================================
 
 (function () {
@@ -22,6 +22,9 @@
     canvasBg: '',
     pageAlignment: 'center',
     pageTitle: '',
+    googleAnalyticsId: '',
+    favicon: '',         // data URL (uploaded) or external URL
+    faviconType: '',     // 'data' or 'url'
   };
 
   // ===== COMPONENT DEFINITIONS =====
@@ -288,6 +291,9 @@
     projects[idx].canvasBg = state.canvasBg || '';
     projects[idx].pageAlignment = state.pageAlignment || 'center';
     projects[idx].pageTitle = state.pageTitle || '';
+    projects[idx].googleAnalyticsId = state.googleAnalyticsId || '';
+    projects[idx].favicon = state.favicon || '';
+    projects[idx].faviconType = state.faviconType || '';
     projects[idx].updatedAt = Date.now();
     saveAllProjects(projects);
   }
@@ -319,6 +325,9 @@
     state.canvasBg = project.canvasBg || '';
     state.pageAlignment = project.pageAlignment || 'center';
     state.pageTitle = project.pageTitle || '';
+    state.googleAnalyticsId = project.googleAnalyticsId || '';
+    state.favicon = project.favicon || '';
+    state.faviconType = project.faviconType || '';
     state.selectedId = null;
     state.history = [];
     state.historyIndex = -1;
@@ -326,6 +335,8 @@
     renderCanvas();
     renderStylesPanel();
     updateProjectNameUI();
+    updateGaTag();
+    updateExportDropdown();
   }
 
   function deleteProject(id) {
@@ -342,6 +353,28 @@
         openProject(newProj.id);
       }
     }
+  }
+
+  function duplicateProject(id) {
+    const projects = loadAllProjects();
+    const source = projects.find(p => p.id === id);
+    if (!source) return;
+    const dup = {
+      id: projId(),
+      name: source.name + ' (Copy)',
+      components: deepClone(source.components || []),
+      canvasBg: source.canvasBg || '',
+      pageAlignment: source.pageAlignment || 'center',
+      pageTitle: source.pageTitle || '',
+      googleAnalyticsId: source.googleAnalyticsId || '',
+      favicon: source.favicon || '',
+      faviconType: source.faviconType || '',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    projects.unshift(dup);
+    saveAllProjects(projects);
+    return dup;
   }
 
   function renameProject(id, newName) {
@@ -389,6 +422,9 @@
         state.canvasBg = project.canvasBg || '';
         state.pageAlignment = project.pageAlignment || 'center';
         state.pageTitle = project.pageTitle || '';
+        state.googleAnalyticsId = project.googleAnalyticsId || '';
+        state.favicon = project.favicon || '';
+        state.faviconType = project.faviconType || '';
       }
     }
 
@@ -623,6 +659,254 @@
     cancelBtn.addEventListener('click', handleCancel);
     closeBtn.addEventListener('click', handleCancel);
     input.addEventListener('keydown', handleKey);
+  }
+
+  // ===== GOOGLE ANALYTICS MODAL & TAG =====
+  function showGaModal(onConfirm, onCancel, prefill) {
+    const modal = $('#gaModal');
+    const input = $('#gaIdInput');
+    const okBtn = $('#gaOk');
+    const cancelBtn = $('#gaCancel');
+    const closeBtn = $('#closeGa');
+    const errorEl = $('#gaError');
+    input.value = prefill || '';
+    errorEl.classList.add('hidden');
+    input.classList.remove('input-error');
+    modal.classList.remove('hidden');
+    input.focus();
+
+    const clearError = () => { errorEl.classList.add('hidden'); input.classList.remove('input-error'); };
+
+    const cleanup = () => {
+      modal.classList.add('hidden');
+      clearError();
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      closeBtn.removeEventListener('click', handleCancel);
+      input.removeEventListener('keydown', handleKey);
+      input.removeEventListener('input', clearError);
+    };
+
+    const handleOk = () => {
+      if (!input.value.trim()) {
+        errorEl.classList.remove('hidden');
+        input.classList.add('input-error');
+        input.focus();
+        return;
+      }
+      cleanup();
+      onConfirm(input.value.trim());
+    };
+    const handleCancel = () => { cleanup(); if (onCancel) onCancel(); };
+    const handleKey = (e) => { if (e.key === 'Enter') handleOk(); if (e.key === 'Escape') handleCancel(); };
+
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    closeBtn.addEventListener('click', handleCancel);
+    input.addEventListener('keydown', handleKey);
+    input.addEventListener('input', clearError);
+  }
+
+  function updateGaTag() {
+    const tag = $('#gaTag');
+    const idEl = $('#gaTagId');
+    if (state.googleAnalyticsId) {
+      tag.classList.remove('hidden');
+      idEl.textContent = state.googleAnalyticsId;
+    } else {
+      tag.classList.add('hidden');
+      tag.classList.remove('open');
+      $('#gaTagDropdown').classList.add('hidden');
+    }
+    // Disable/enable the sidebar GA item
+    const gaItem = document.querySelector('.component-item[data-type="google-analytics"]');
+    if (gaItem) {
+      if (state.googleAnalyticsId) {
+        gaItem.classList.add('component-item-disabled');
+        gaItem.setAttribute('draggable', 'false');
+      } else {
+        gaItem.classList.remove('component-item-disabled');
+        gaItem.setAttribute('draggable', 'true');
+      }
+    }
+    lucide.createIcons({ nameAttr: 'data-lucide', attrs: {} });
+  }
+
+  function initGaTag() {
+    const tagBtn = $('#gaTagBtn');
+    const dropdown = $('#gaTagDropdown');
+    const tag = $('#gaTag');
+
+    tagBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = !dropdown.classList.contains('hidden');
+      if (isOpen) {
+        dropdown.classList.add('hidden');
+        tag.classList.remove('open');
+      } else {
+        dropdown.classList.remove('hidden');
+        tag.classList.add('open');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#gaTag')) {
+        dropdown.classList.add('hidden');
+        tag.classList.remove('open');
+      }
+    });
+
+    $('#gaEditBtn').addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      tag.classList.remove('open');
+      showGaModal((id) => {
+        if (id) {
+          state.googleAnalyticsId = id;
+          scheduleAutoSave();
+          updateGaTag();
+          updateExportDropdown();
+          showToast('Google Analytics ID updated');
+        }
+      }, null, state.googleAnalyticsId);
+    });
+
+    $('#gaRemoveBtn').addEventListener('click', () => {
+      dropdown.classList.add('hidden');
+      tag.classList.remove('open');
+      showConfirmModal('Remove Google Analytics', 'Are you sure you want to remove Google Analytics from this project?', () => {
+        state.googleAnalyticsId = '';
+        scheduleAutoSave();
+        updateGaTag();
+        updateExportDropdown();
+        showToast('Google Analytics removed');
+      });
+    });
+  }
+
+  // ===== FAVICON MODAL =====
+  function showFaviconModal() {
+    const modal = $('#faviconModal');
+    const dropzone = $('#faviconDropzone');
+    const fileInput = $('#faviconFileInput');
+    const fileBtn = $('#faviconFileBtn');
+    const urlInput = $('#faviconUrlInput');
+    const okBtn = $('#faviconOk');
+    const cancelBtn = $('#faviconCancel');
+    const closeBtn = $('#closeFavicon');
+    const previewRow = $('#faviconPreviewRow');
+    const previewImg = $('#faviconPreviewImg');
+    const removeBtn = $('#faviconRemoveBtn');
+
+    let pendingFavicon = state.favicon || '';
+    let pendingType = state.faviconType || '';
+
+    function updatePreview() {
+      if (pendingFavicon) {
+        previewRow.classList.remove('hidden');
+        previewImg.src = pendingFavicon;
+        urlInput.value = pendingType === 'url' ? pendingFavicon : '';
+      } else {
+        previewRow.classList.add('hidden');
+        previewImg.src = '';
+        urlInput.value = '';
+      }
+    }
+
+    updatePreview();
+    modal.classList.remove('hidden');
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        pendingFavicon = e.target.result;
+        pendingType = 'data';
+        updatePreview();
+      };
+      reader.readAsDataURL(file);
+    }
+
+    const handleDragOver = (e) => { e.preventDefault(); e.stopPropagation(); dropzone.classList.add('drag-over'); };
+    const handleDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); dropzone.classList.remove('drag-over'); };
+    const handleDrop = (e) => {
+      e.preventDefault(); e.stopPropagation(); dropzone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) handleFile(file);
+    };
+    const handleFileChange = () => { if (fileInput.files[0]) handleFile(fileInput.files[0]); };
+    const handleFileBtnClick = (e) => { e.stopPropagation(); fileInput.click(); };
+    const handleDropzoneClick = () => { fileInput.click(); };
+    const handleRemove = () => { pendingFavicon = ''; pendingType = ''; updatePreview(); };
+
+    const cleanup = () => {
+      modal.classList.add('hidden');
+      dropzone.removeEventListener('dragover', handleDragOver);
+      dropzone.removeEventListener('dragleave', handleDragLeave);
+      dropzone.removeEventListener('drop', handleDrop);
+      fileInput.removeEventListener('change', handleFileChange);
+      fileBtn.removeEventListener('click', handleFileBtnClick);
+      dropzone.removeEventListener('click', handleDropzoneClick);
+      removeBtn.removeEventListener('click', handleRemove);
+      okBtn.removeEventListener('click', handleOk);
+      cancelBtn.removeEventListener('click', handleCancel);
+      closeBtn.removeEventListener('click', handleCancel);
+      urlInput.removeEventListener('keydown', handleKey);
+    };
+
+    const handleOk = () => {
+      const urlVal = urlInput.value.trim();
+      if (urlVal && pendingType !== 'data') {
+        pendingFavicon = urlVal;
+        pendingType = 'url';
+      }
+      state.favicon = pendingFavicon;
+      state.faviconType = pendingType;
+      scheduleAutoSave();
+      updateExportDropdown();
+      showToast(state.favicon ? 'Favicon saved' : 'Favicon removed');
+      cleanup();
+    };
+    const handleCancel = () => cleanup();
+    const handleKey = (e) => { if (e.key === 'Enter') handleOk(); if (e.key === 'Escape') handleCancel(); };
+
+    dropzone.addEventListener('dragover', handleDragOver);
+    dropzone.addEventListener('dragleave', handleDragLeave);
+    dropzone.addEventListener('drop', handleDrop);
+    fileInput.addEventListener('change', handleFileChange);
+    fileBtn.addEventListener('click', handleFileBtnClick);
+    dropzone.addEventListener('click', handleDropzoneClick);
+    removeBtn.addEventListener('click', handleRemove);
+    okBtn.addEventListener('click', handleOk);
+    cancelBtn.addEventListener('click', handleCancel);
+    closeBtn.addEventListener('click', handleCancel);
+    urlInput.addEventListener('keydown', handleKey);
+  }
+
+  // ===== EXPORT DROPDOWN STATE =====
+  function updateExportDropdown() {
+    const singleBtn = $('#exportSingleBtn');
+    const hasExternalAssets = !!(state.googleAnalyticsId || state.favicon);
+    if (hasExternalAssets) {
+      singleBtn.classList.add('disabled');
+      singleBtn.setAttribute('title', 'Not available when using a favicon or Google Analytics');
+    } else {
+      singleBtn.classList.remove('disabled');
+      singleBtn.removeAttribute('title');
+    }
+    // Show/hide hint
+    let hint = $('#exportDisabledHint');
+    if (hasExternalAssets) {
+      if (!hint) {
+        hint = document.createElement('div');
+        hint.className = 'export-dropdown-hint';
+        hint.id = 'exportDisabledHint';
+        singleBtn.parentNode.insertBefore(hint, singleBtn.nextSibling);
+      }
+      hint.textContent = 'Single file export is unavailable when using a favicon or Google Analytics. Use Multi-File (ZIP) instead.';
+      hint.style.display = '';
+    } else if (hint) {
+      hint.style.display = 'none';
+    }
   }
 
   // ===== RENDER CANVAS =====
@@ -982,6 +1266,7 @@
   let bottomPadScrolled = false;
 
   function updateDropPads(clientY) {
+    if (dragComponentType === 'google-analytics') return;
     const scrollContainer = canvasEl.closest('.canvas-scroll');
     const rect = scrollContainer.getBoundingClientRect();
     const nearTop = clientY - rect.top < 32;
@@ -1014,11 +1299,15 @@
         e.dataTransfer.effectAllowed = 'copy';
         const ghost = document.createElement('div');
         ghost.className = 'drag-ghost';
-        ghost.textContent = COMPONENT_DEFS[dragComponentType]?.label || item.dataset.type;
+        ghost.textContent = dragComponentType === 'google-analytics' ? 'Google Analytics' : (COMPONENT_DEFS[dragComponentType]?.label || item.dataset.type);
         document.body.appendChild(ghost);
         e.dataTransfer.setDragImage(ghost, 0, 0);
         setTimeout(() => ghost.remove(), 0);
         isDragging = true;
+        if (dragComponentType === 'google-analytics') {
+          $('#gaDropOverlay').classList.remove('hidden');
+          lucide.createIcons({ nameAttr: 'data-lucide', attrs: {} });
+        }
       });
       item.addEventListener('dragend', () => {
         item.classList.remove('dragging');
@@ -1027,14 +1316,21 @@
         clearDropIndicators();
         canvasEl.classList.remove('drag-over');
         hideDropPads();
+        $('#gaDropOverlay').classList.add('hidden');
       });
     });
+  }
+
+  function setupGaDropOverlay() {
+    // Overlay is purely visual (pointer-events: none).
+    // Drops fall through to canvas/pad handlers which check for 'google-analytics'.
   }
 
   function setupCanvasDropZone() {
     canvasEl.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = dragType === 'new' ? 'copy' : 'move';
+      if (dragComponentType === 'google-analytics') return;
       if (e.target === canvasEl || e.target === canvasEmpty) {
         canvasEl.classList.add('drag-over');
         showDropIndicator(canvasEl, e.clientY);
@@ -1055,6 +1351,11 @@
       const dropIndex = getDropIndex(canvasEl, e.clientY);
 
       if (dragType === 'new' && dragComponentType) {
+        if (dragComponentType === 'google-analytics') {
+          $('#gaDropOverlay').classList.add('hidden');
+          showGaModal((id) => { if (id) { state.googleAnalyticsId = id; scheduleAutoSave(); updateGaTag(); updateExportDropdown(); showToast('Google Analytics added'); } });
+          return;
+        }
         if (dragComponentType === 'calendly') {
           const capturedType = dragComponentType;
           showCalendlyModal((url) => {
@@ -1090,6 +1391,7 @@
         e.preventDefault();
         e.stopPropagation();
         e.dataTransfer.dropEffect = dragType === 'new' ? 'copy' : 'move';
+        if (dragComponentType === 'google-analytics') return;
         pad.classList.add('drag-hover');
       });
       pad.addEventListener('dragleave', (e) => {
@@ -1102,6 +1404,11 @@
         const idx = typeof insertIndex === 'function' ? insertIndex() : insertIndex;
 
         if (dragType === 'new' && dragComponentType) {
+          if (dragComponentType === 'google-analytics') {
+            $('#gaDropOverlay').classList.add('hidden');
+            showGaModal((id) => { if (id) { state.googleAnalyticsId = id; scheduleAutoSave(); updateGaTag(); updateExportDropdown(); showToast('Google Analytics added'); } });
+            return;
+          }
           if (dragComponentType === 'calendly') {
             const capturedType = dragComponentType;
             showCalendlyModal((url) => {
@@ -1153,6 +1460,7 @@
       e.preventDefault();
       e.stopPropagation();
       e.dataTransfer.dropEffect = dragType === 'new' ? 'copy' : 'move';
+      if (dragComponentType === 'google-analytics') return;
       el.classList.add('drag-over-container');
       const parent = findComponent(parentId, state.components);
       if (parent && parent.children) showDropIndicator(el, e.clientY);
@@ -1177,6 +1485,11 @@
 
       if (dragType === 'new' && dragComponentType) {
         if (dragComponentType === 'column') return;
+        if (dragComponentType === 'google-analytics') {
+          $('#gaDropOverlay').classList.add('hidden');
+          showGaModal((id) => { if (id) { state.googleAnalyticsId = id; scheduleAutoSave(); updateGaTag(); updateExportDropdown(); showToast('Google Analytics added'); } });
+          return;
+        }
         if (dragComponentType === 'calendly') {
           const capturedType = dragComponentType;
           showCalendlyModal((url) => {
@@ -2771,12 +3084,21 @@
     })(state.components);
     const families = Array.from(fontsUsed).map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700`).join('&');
     const fontsUrl = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+    const gaSnippet = state.googleAnalyticsId ? `
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=${escHtml(state.googleAnalyticsId)}"><\/script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', '${escHtml(state.googleAnalyticsId)}');
+    <\/script>` : '';
     return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${state.pageTitle || 'My Landing Page'}</title>
+    <title>${state.pageTitle || 'My Landing Page'}</title>${gaSnippet}${state.favicon ? `\n    <link rel="icon" href="${escHtml(state.favicon)}">` : ''}
     <link href="${fontsUrl}" rel="stylesheet">
     ${hasIcons ? '<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>' : ''}
     <style>
@@ -2785,7 +3107,49 @@ ${generateCSS()}
 </head>
 <body>
 ${generateHTML()}
-    ${hasIcons ? '<script>lucide.createIcons();<\/script>' : ''}
+    ${hasIcons ? '<script>lucide.createIcons();<\/script>' : ''}${state.googleAnalyticsId ? `
+    <script>
+      // GA4 Event Tracking
+      document.addEventListener('click', function(e) {
+        var link = e.target.closest('a');
+        if (link) {
+          gtag('event', 'link_click', {
+            link_text: link.textContent.trim().substring(0, 100),
+            link_url: link.getAttribute('href') || ''
+          });
+        }
+        var button = e.target.closest('button, .pb-btn');
+        if (button && !link) {
+          gtag('event', 'button_click', {
+            button_text: button.textContent.trim().substring(0, 100)
+          });
+        }
+      });
+      document.querySelectorAll('form').forEach(function(form) {
+        form.addEventListener('submit', function() {
+          gtag('event', 'form_submit', {
+            form_id: form.id || '',
+            form_action: form.getAttribute('action') || ''
+          });
+        });
+      });
+      (function() {
+        var milestones = [25, 50, 75, 100];
+        var reached = {};
+        window.addEventListener('scroll', function() {
+          var scrollTop = window.scrollY || document.documentElement.scrollTop;
+          var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+          if (docHeight <= 0) return;
+          var percent = Math.round((scrollTop / docHeight) * 100);
+          milestones.forEach(function(m) {
+            if (percent >= m && !reached[m]) {
+              reached[m] = true;
+              gtag('event', 'scroll_depth', { depth: m + '%' });
+            }
+          });
+        });
+      })();
+    <\/script>` : ''}
 </body>
 </html>`;
   }
@@ -2890,19 +3254,265 @@ ${generateHTML()}
   }
 
   // ===== EXPORT =====
-  function exportProject() {
-    const html = generateFullPage();
-    const blob = new Blob([html], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
+  function getProjectSafeName() {
     const projects = loadAllProjects();
     const project = projects.find(p => p.id === state.activeProjectId);
     const projectName = (project && project.name) ? project.name : 'landing-page';
-    const safeName = projectName.replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '-').toLowerCase() || 'landing-page';
-    a.download = safeName + '.html';
+    return projectName.replace(/[^a-zA-Z0-9_\- ]/g, '').replace(/\s+/g, '-').toLowerCase() || 'landing-page';
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function exportSingleFile() {
+    const html = generateFullPage();
+    downloadBlob(new Blob([html], { type: 'text/html' }), getProjectSafeName() + '.html');
+  }
+
+  // ===== MULTI-FILE EXPORT =====
+  function generateMultiFileCSS() {
+    return generateCSS();
+  }
+
+  function generateMultiFileJS() {
+    const hasIcons = (function check(tree) { for (const c of tree) { if (c.type === 'icon') return true; if (c.children && check(c.children)) return true; } return false; })(state.components);
+    let js = '';
+    if (hasIcons) {
+      js += '// Initialize Lucide icons\nlucide.createIcons();\n';
+    }
+    if (state.googleAnalyticsId) {
+      js += `
+// Google Analytics Setup
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${escHtml(state.googleAnalyticsId)}');
+
+// GA4 Event Tracking
+document.addEventListener('click', function(e) {
+  var link = e.target.closest('a');
+  if (link) {
+    gtag('event', 'link_click', {
+      link_text: link.textContent.trim().substring(0, 100),
+      link_url: link.getAttribute('href') || ''
+    });
+  }
+  var button = e.target.closest('button, .pb-btn');
+  if (button && !link) {
+    gtag('event', 'button_click', {
+      button_text: button.textContent.trim().substring(0, 100)
+    });
+  }
+});
+document.querySelectorAll('form').forEach(function(form) {
+  form.addEventListener('submit', function() {
+    gtag('event', 'form_submit', {
+      form_id: form.id || '',
+      form_action: form.getAttribute('action') || ''
+    });
+  });
+});
+(function() {
+  var milestones = [25, 50, 75, 100];
+  var reached = {};
+  window.addEventListener('scroll', function() {
+    var scrollTop = window.scrollY || document.documentElement.scrollTop;
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight <= 0) return;
+    var percent = Math.round((scrollTop / docHeight) * 100);
+    milestones.forEach(function(m) {
+      if (percent >= m && !reached[m]) {
+        reached[m] = true;
+        gtag('event', 'scroll_depth', { depth: m + '%' });
+      }
+    });
+  });
+})();
+`;
+    }
+    return js || '// No JavaScript needed for this page\n';
+  }
+
+  function generateMultiFileHTML() {
+    const hasIcons = (function check(tree) { for (const c of tree) { if (c.type === 'icon') return true; if (c.children && check(c.children)) return true; } return false; })(state.components);
+    const fontsUsed = new Set();
+    fontsUsed.add('Inter');
+    (function collectFonts(tree) {
+      for (const c of tree) {
+        if (c.styles && c.styles.fontFamily) {
+          const fontName = c.styles.fontFamily.replace(/'/g, '').split(',')[0].trim();
+          if (fontName && !['Arial', 'Georgia', 'Times New Roman', 'Courier New'].includes(fontName)) {
+            fontsUsed.add(fontName);
+          }
+        }
+        if (c.children) collectFonts(c.children);
+      }
+    })(state.components);
+    const families = Array.from(fontsUsed).map(f => `family=${f.replace(/ /g, '+')}:wght@300;400;500;600;700`).join('&');
+    const fontsUrl = `https://fonts.googleapis.com/css2?${families}&display=swap`;
+    const gaAsync = state.googleAnalyticsId ? `\n    <script async src="https://www.googletagmanager.com/gtag/js?id=${escHtml(state.googleAnalyticsId)}"><\/script>` : '';
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${state.pageTitle || 'My Landing Page'}</title>${gaAsync}${state.favicon ? `\n    <link rel="icon" href="${state.faviconType === 'data' ? 'favicon' + getFaviconExt(state.favicon) : escHtml(state.favicon)}">` : ''}
+    <link href="${fontsUrl}" rel="stylesheet">
+    ${hasIcons ? '<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"><\/script>' : ''}
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+${generateHTML()}
+    <script src="script.js"><\/script>
+</body>
+</html>`;
+  }
+
+  // ===== MINIMAL ZIP BUILDER =====
+  function buildZip(files) {
+    // files: [{name, content}] or [{name, binary}]
+    const encoder = new TextEncoder();
+    const entries = files.map(f => ({ name: encoder.encode(f.name), data: f.binary || encoder.encode(f.content) }));
+
+    // DOS time/date from current local time
+    const now = new Date();
+    const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+
+    const localHeaders = [];
+    const centralHeaders = [];
+    let offset = 0;
+
+    for (const entry of entries) {
+      // CRC-32
+      const crc = crc32(entry.data);
+      const size = entry.data.length;
+      const nameLen = entry.name.length;
+
+      // Local file header (30 + nameLen + data)
+      const local = new Uint8Array(30 + nameLen + size);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);   // signature
+      lv.setUint16(4, 20, true);            // version needed
+      lv.setUint16(6, 0, true);             // flags
+      lv.setUint16(8, 0, true);             // compression: store
+      lv.setUint16(10, dosTime, true);       // mod time
+      lv.setUint16(12, dosDate, true);       // mod date
+      lv.setUint32(14, crc, true);          // crc-32
+      lv.setUint32(18, size, true);         // compressed size
+      lv.setUint32(22, size, true);         // uncompressed size
+      lv.setUint16(26, nameLen, true);      // filename length
+      lv.setUint16(28, 0, true);            // extra field length
+      local.set(entry.name, 30);
+      local.set(entry.data, 30 + nameLen);
+      localHeaders.push(local);
+
+      // Central directory header (46 + nameLen)
+      const central = new Uint8Array(46 + nameLen);
+      const cv = new DataView(central.buffer);
+      cv.setUint32(0, 0x02014b50, true);   // signature
+      cv.setUint16(4, 20, true);            // version made by
+      cv.setUint16(6, 20, true);            // version needed
+      cv.setUint16(8, 0, true);             // flags
+      cv.setUint16(10, 0, true);            // compression
+      cv.setUint16(12, dosTime, true);       // mod time
+      cv.setUint16(14, dosDate, true);       // mod date
+      cv.setUint32(16, crc, true);          // crc-32
+      cv.setUint32(20, size, true);         // compressed
+      cv.setUint32(24, size, true);         // uncompressed
+      cv.setUint16(28, nameLen, true);      // filename length
+      cv.setUint16(30, 0, true);            // extra length
+      cv.setUint16(32, 0, true);            // comment length
+      cv.setUint16(34, 0, true);            // disk number
+      cv.setUint16(36, 0, true);            // internal attrs
+      cv.setUint32(38, 0, true);            // external attrs
+      cv.setUint32(42, offset, true);       // local header offset
+      central.set(entry.name, 46);
+      centralHeaders.push(central);
+
+      offset += local.length;
+    }
+
+    const centralDirOffset = offset;
+    const centralDirSize = centralHeaders.reduce((s, c) => s + c.length, 0);
+
+    // End of central directory (22 bytes)
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(4, 0, true);
+    ev.setUint16(6, 0, true);
+    ev.setUint16(8, entries.length, true);
+    ev.setUint16(10, entries.length, true);
+    ev.setUint32(12, centralDirSize, true);
+    ev.setUint32(16, centralDirOffset, true);
+    ev.setUint16(20, 0, true);
+
+    const totalSize = offset + centralDirSize + 22;
+    const result = new Uint8Array(totalSize);
+    let pos = 0;
+    for (const lh of localHeaders) { result.set(lh, pos); pos += lh.length; }
+    for (const ch of centralHeaders) { result.set(ch, pos); pos += ch.length; }
+    result.set(eocd, pos);
+
+    return new Blob([result], { type: 'application/zip' });
+  }
+
+  function crc32(data) {
+    let crc = 0xFFFFFFFF;
+    for (let i = 0; i < data.length; i++) {
+      crc ^= data[i];
+      for (let j = 0; j < 8; j++) {
+        crc = (crc >>> 1) ^ (crc & 1 ? 0xEDB88320 : 0);
+      }
+    }
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function getFaviconExt(dataUrl) {
+    if (!dataUrl) return '.png';
+    if (dataUrl.includes('image/svg')) return '.svg';
+    if (dataUrl.includes('image/x-icon') || dataUrl.includes('image/vnd.microsoft.icon')) return '.ico';
+    if (dataUrl.includes('image/gif')) return '.gif';
+    if (dataUrl.includes('image/webp')) return '.webp';
+    if (dataUrl.includes('image/jpeg')) return '.jpg';
+    return '.png';
+  }
+
+  function dataUrlToUint8Array(dataUrl) {
+    const base64 = dataUrl.split(',')[1];
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    return bytes;
+  }
+
+  function exportZip() {
+    const safeName = getProjectSafeName();
+    const htmlContent = generateMultiFileHTML();
+    const cssContent = generateMultiFileCSS();
+    const jsContent = generateMultiFileJS();
+
+    const files = [
+      { name: safeName + '/index.html', content: htmlContent },
+      { name: safeName + '/styles.css', content: cssContent },
+      { name: safeName + '/script.js', content: jsContent },
+    ];
+
+    // Include favicon as a binary file if it's a data URL
+    if (state.favicon && state.faviconType === 'data') {
+      const ext = getFaviconExt(state.favicon);
+      files.push({ name: safeName + '/favicon' + ext, binary: dataUrlToUint8Array(state.favicon) });
+    }
+
+    const zip = buildZip(files);
+    downloadBlob(zip, safeName + '.zip');
   }
 
   // ===== PROJECTS MODAL UI =====
@@ -2926,6 +3536,7 @@ ${generateHTML()}
           <div class="project-item-date">${formatDate(proj.updatedAt)}</div>
         </div>
         <div class="project-item-actions">
+          <button class="icon-btn duplicate-proj-btn" title="Duplicate"><i data-lucide="copy"></i></button>
           <button class="icon-btn rename-proj-btn" title="Rename"><i data-lucide="pencil"></i></button>
           <button class="icon-btn delete-proj-btn" title="Delete"><i data-lucide="trash-2"></i></button>
         </div>
@@ -2937,6 +3548,14 @@ ${generateHTML()}
         openProject(proj.id);
         $('#projectsModal').classList.add('hidden');
         showToast(`Opened "${proj.name}"`);
+      });
+
+      // Duplicate
+      item.querySelector('.duplicate-proj-btn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        duplicateProject(proj.id);
+        renderProjectsModal();
+        showToast(`Duplicated "${proj.name}"`);
       });
 
       // Rename
@@ -3052,6 +3671,10 @@ ${generateHTML()}
     lucide.createIcons();
     initPanelDrag();
     setupCanvasDropZone();
+    setupGaDropOverlay();
+    initGaTag();
+    updateGaTag();
+    updateExportDropdown();
     pushHistory();
     renderCanvas();
 
@@ -3128,8 +3751,32 @@ ${generateHTML()}
       });
     });
 
-    // Export
-    $('#exportBtn').addEventListener('click', exportProject);
+    // Export dropdown
+    const exportWrapper = $('#exportWrapper');
+    const exportDropdown = $('#exportDropdown');
+    $('#exportBtn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = exportDropdown.classList.contains('visible');
+      exportDropdown.classList.toggle('visible', !isOpen);
+      exportWrapper.classList.toggle('open', !isOpen);
+    });
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('#exportWrapper')) {
+        exportDropdown.classList.remove('visible');
+        exportWrapper.classList.remove('open');
+      }
+    });
+    $('#exportSingleBtn').addEventListener('click', () => {
+      if ($('#exportSingleBtn').classList.contains('disabled')) return;
+      exportDropdown.classList.remove('visible');
+      exportWrapper.classList.remove('open');
+      exportSingleFile();
+    });
+    $('#exportZipBtn').addEventListener('click', () => {
+      exportDropdown.classList.remove('visible');
+      exportWrapper.classList.remove('open');
+      exportZip();
+    });
 
     // Clear
     $('#clearBtn').addEventListener('click', () => {
@@ -3194,6 +3841,12 @@ ${generateHTML()}
     $('#pageTitleBtn').addEventListener('click', () => {
       pageSettingsDropdown.classList.remove('visible');
       showPageTitleModal();
+    });
+
+    // Favicon
+    $('#faviconBtn').addEventListener('click', () => {
+      pageSettingsDropdown.classList.remove('visible');
+      showFaviconModal();
     });
 
     // Project selector
