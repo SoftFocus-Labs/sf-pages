@@ -506,6 +506,20 @@
     </div>
   </div>
 
-  <script src="js/app.js"></script>
+  <!-- Application modules — loaded as ordered classic scripts (shared global scope).
+       Order matters: each file may use declarations from files above it.
+       ES modules are intentionally avoided so the app still runs from file://. -->
+  <script src="js/modules/constants.js"></script>
+  <script src="js/modules/utils.js"></script>
+  <script src="js/modules/storage.js"></script>
+  <script src="js/modules/components.js"></script>
+  <script src="js/modules/ui.js"></script>
+  <script src="js/modules/modals.js"></script>
+  <script src="js/modules/canvas.js"></script>
+  <script src="js/modules/dragdrop.js"></script>
+  <script src="js/modules/inspector.js"></script>
+  <script src="js/modules/import.js"></script>
+  <script src="js/modules/codegen.js"></script>
+  <script src="js/modules/main.js"></script>
 </body>
 </html>

@@ -47,8 +47,24 @@ That's it. No install, no build step.
 page-builder/
   index.html        Main application shell and modal templates
   css/styles.css    Complete UI styling with CSS custom properties
-  js/app.js         All application logic (state, rendering, drag-drop, export)
+  js/modules/       Application logic, split by concern and loaded as
+                    ordered classic <script> tags (see CLAUDE.md):
+    constants.js    State object, COMPONENT_DEFS, font/icon lists
+    utils.js        Tree/DOM/format helpers
+    storage.js      Project persistence, autosave, undo/redo
+    components.js   Component factory, selection, tree operations
+    ui.js           Toasts and the custom select dropdown
+    modals.js       All modal dialogs, GA tag, icon picker
+    canvas.js       Render pipeline and style application
+    dragdrop.js     Drag-and-drop and drop indicators
+    inspector.js    The Styles panel and its controls
+    import.js       HTML/CSS import parser
+    codegen.js      HTML/CSS/JS generation, preview, export, ZIP
+    main.js         Bootstrap and global event wiring
 ```
+
+ES modules are intentionally avoided so the app still runs from `file://`; the
+modules share global scope and must load in the order listed above.
 
 ## How It Works
 
